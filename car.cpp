@@ -6,14 +6,16 @@ Car::Car(Point uL, Point lR, Mat initialIm)
   upperLeft = uL;
   lowerRight = lR;
   inertialTracking = false;
-  //templateIm = initialIm(Range(upperLeft.y,lowerRight.y),Range(upperLeft.x,lowerRight.x));
+  templateIm = initialIm(Range(upperLeft.y,lowerRight.y),Range(upperLeft.x,lowerRight.x));
+  updateTemplate = 1;  
+  /**
+     Mat edges;
+     blur(initialIm,edges, Size(7,7) );
 
-  Mat edges;
-  blur(initialIm,edges, Size(7,7) );
-
-  Canny(edges,edges,71,92,3);
-  templateIm = edges(Range(upperLeft.y,lowerRight.y),Range(upperLeft.x,lowerRight.x));
-  carConfidence = 1;
+     Canny(edges,edges,75,92,3);
+     templateIm = edges(Range(upperLeft.y,lowerRight.y),Range(upperLeft.x,lowerRight.x));
+  
+  **/
   
 }
 
@@ -46,76 +48,21 @@ void Car::matchPoints(std::vector<KeyPoint>* kp_in1, std::vector<KeyPoint>* kp_i
     if( dist < min_dist ) min_dist = dist;
     if( dist > max_dist ) max_dist = dist;
   }
+  
+   //-- Keep good matches
+   std::vector< DMatch > good_matches;
+  
+   for( int i = 0; i < descriptors_1.rows; i++ )
+     { if( matches[i].distance <= max(thresh*min_dist, 0.02) )
+      { good_matches.push_back( matches[i]); }
+     }
 
-  printf("-- Max dist : %f \n", max_dist );
-  printf("-- Min dist : %f \n", min_dist );
-
-  std::vector< DMatch > good_matches;
-
-  //-- Keep good matches
-  for( int i = 0; i < descriptors_1.rows; i++ )
-  { if( matches[i].distance <= max(thresh*min_dist, 0.02) )
-    { good_matches.push_back( matches[i]); }
-  }
-
-  //-- Fill the good matches keypoint vectors
-  for ( int i = 0; i < good_matches.size(); i++)
-    {
-      (*kp_out1).push_back((*kp_in1)[good_matches[i].queryIdx]);     
-      (*kp_out2).push_back((*kp_in2)[good_matches[i].trainIdx]);
-    }
-
-  //-- Add the new points to the confirmed batch
-  /*
-  if(!confirmedFeatures.size())
-    {
-      //Mat tempDesc;
-      for (int i=0;i<good_matches.size();i++)
-	{
-	  //tempDesc.row(i) = descriptors_1.row(good_matches[i].queryIdx);
-	  confirmedFeatures.push_back(descriptors_1.row(good_matches[i].queryIdx));
-	}
-
-    }
-  else
-    {
-      //Check that the new features match with the old ones
-     
-	  FlannBasedMatcher matcherCheck;
-	  std::vector<DMatch> matchesCheck;
-
-	  Mat confFeat(2,confirmedFeatures.size(),confirmedFeatures[0].cols);
-	   for (int i=0; i<confirmedFeatures.size();i++)
-	{
-	  confFeat.row(i) = confirmedFeatures[i];
-	}
-	  //-- Match the car SURF points with all the next images SURF points
-	  matcherCheck.match(confFeat,descriptors_2, matches);
-
-	  //-- Find match strengths
-	  double max_dist = 0; double min_dist = 100;
-
-	  for( int j = 0; j < matchesCheck.size(); j++ )
-	    { double dist = matchesCheck[j].distance;
-	      if( dist < min_dist ) min_dist = dist;
-	      if( dist > max_dist ) max_dist = dist;
-	    }
-
-	  printf("-- Max dist for confirmed : %f \n",  max_dist );
-	  printf("-- Min dist : %f \n", min_dist );
-
-	  std::vector< DMatch > good_matches;
-
-	  //-- Keep good matches
-	  for( int i = 0; i < matchesCheck.size(); i++ )
-	    { 
-	      if( matchesCheck[i].distance <= max(2*min_dist, 0.02) )
-		{ good_matches.push_back( matchesCheck[i]); }
-	    }
-	  printf("Kept matches: %d\n",(int)good_matches.size());
-
-	
-	  }*/
+   //-- Fill the good matches keypoint vectors
+   for ( int i = 0; i < good_matches.size(); i++)
+     {
+       (*kp_out1).push_back((*kp_in1)[good_matches[i].queryIdx]);     
+       (*kp_out2).push_back((*kp_in2)[good_matches[i].trainIdx]);
+     }
 
 }
 
@@ -134,7 +81,7 @@ void Car::updateBoxPos(Mat image_1, Mat image_2)
 
   Mat img_keypoints_1; Mat img_keypoints_2;
   
-  //-- Detect keypoints that are within the box, and then find matches 
+  //-- Detect keypoints that are within the box 
  
   for (int i = 0; i < keypoints_1.size(); i++)
     {
@@ -153,11 +100,9 @@ void Car::updateBoxPos(Mat image_1, Mat image_2)
   
   //-- Generate the distances
   for( int i = 0; i < (int)keypoints_gm1.size(); i++ )
-  { 
-    //printf( "-- Good Match [%d] Keypoint 1x: %f  -- Keypoint 2x: %f  \n", i, keypoints_gm1[i].pt.x, keypoints_gm2[i].pt.x ); 
-    xDistance.push_back(keypoints_gm2[i].pt.x - keypoints_gm1[i].pt.x);  
-    yDistance.push_back(keypoints_gm2[i].pt.y - keypoints_gm1[i].pt.y); 
-    //printf( "-- Good Match [%d] xDistance: %f  -- yDistance: %f  \n", i, xDistance[i], yDistance[i] ); 
+    { 
+      xDistance.push_back(keypoints_gm2[i].pt.x - keypoints_gm1[i].pt.x);  
+      yDistance.push_back(keypoints_gm2[i].pt.y - keypoints_gm1[i].pt.y); 
   }
   
   //-- The actual average distances in x and y
@@ -165,24 +110,8 @@ void Car::updateBoxPos(Mat image_1, Mat image_2)
   double avgY = std::accumulate(yDistance.begin(), yDistance.end(), 0) / (double)yDistance.size();
 
   printf( "Distance x: %f  Distance y:  %f  \n", avgX, avgY );
-
   
   drawKeypoints( image_1, keypoints_gm1, img_keypoints_1, Scalar::all(-1), DrawMatchesFlags::DEFAULT );
-  //drawKeypoints( image_2, keypoints_gm2, img_keypoints_2, Scalar::all(-1), DrawMatchesFlags::DEFAULT );
-
-  /*
-  if(!inertialTracking)
-    {
-      rectangle(img_keypoints_1,upperLeft,lowerRight,10,3);
-    }
-  else
-    {
-      //-- Not sure if the car is in the box
-      rectangle(img_keypoints_1,upperLeft,lowerRight,100,5);
-    } */
-
- 
-  
   
   //-- Update the box if we are still tracking the car
   if(!inertialTracking && keypoints_gm1.size())
@@ -210,7 +139,7 @@ void Car::updateBoxPos(Mat image_1, Mat image_2)
       lowerRight.x += avgXHistorical;
       upperLeft.y += avgYHistorical;
       lowerRight.y += avgYHistorical;
-    
+      printf("++++++++++++++++ Inertial Tracking - lost car +++++++++++++++++++\n");
       //-- Make sure the edges of the box are still on the screen
       checkBounds(image_1, &upperLeft, &lowerRight);
     }
@@ -218,24 +147,59 @@ void Car::updateBoxPos(Mat image_1, Mat image_2)
   //-- Show detected (drawn) keypoints
   imshow("Keypoints 1", img_keypoints_1 );
  
-  waitKey(1);
+  waitKey(20);
 
+}
+
+void Car::getTemplateMatch(Mat image, Point* matchUL, Point* matchLR)
+{
+      Mat result;
+      int result_cols =  image.cols - templateIm.cols + 1;
+      int result_rows = image.rows - templateIm.rows + 1;
+      double minVal; double maxVal; Point minLoc; Point maxLoc;
+  
+      result.create( result_cols, result_rows, CV_32FC1 );
+
+      //-- Do the Matching and Normalize
+      
+      //-- Resize the template for the current box size
+      Mat resizedTemplate;
+      resize(templateIm,resizedTemplate,Size( lowerRight.x - upperLeft.x,lowerRight.y - upperLeft.y));
+      //-- Use CV_TM_SQDIFF_NORMED or CV_TM_CCORR_NORMED
+      matchTemplate(image, resizedTemplate, result, CV_TM_SQDIFF_NORMED );
+      normalize( result, result, 0, 1, NORM_MINMAX, -1, Mat() );
+      
+      minMaxLoc( result, &minVal, &maxVal, &minLoc, &maxLoc, Mat() );
+      *matchUL = minLoc;
+      
+      matchLR->x = matchUL->x + resizedTemplate.cols;
+      matchLR->y = matchUL->y + resizedTemplate.rows;
 }
 
 void Car::updateBoxSize(Mat image)
 {
-  Mat edges,subEdge;
-
-  blur(image, edges, Size(7,7) );
-
-  Canny(edges,edges,75,102,3);
+  //-- Create an image using Canny edge detection 
+  Mat subImage,edges,subEdge;
+  Point extremeUL,extremeLR;
+  int expandFactor = 20;
+  extremeUL.x = upperLeft.x - expandFactor;
+  extremeUL.y = upperLeft.y - expandFactor;
+  extremeLR.x = lowerRight.x + expandFactor;
+  extremeLR.y = lowerRight.y + expandFactor;
+  checkBounds(image,&extremeUL,&extremeLR);
+  subImage = image(Range(extremeUL.y,extremeLR.y),Range(extremeUL.x,extremeLR.x));
+  blur(image, edges, Size(5,5) );
+  
+  Canny(edges,edges,70,96,3);
   subEdge = edges(Range(upperLeft.y,lowerRight.y),Range(upperLeft.x,lowerRight.x));
+
   //-- Get the current gradient to compare against
   float currentGradient = sum(subEdge)[0];
   printf("Current sum: %f\n",currentGradient/255);
   gradientHistory.push_back((int)currentGradient/255);
   double gAvg = std::accumulate(gradientHistory.begin(), gradientHistory.end(), 0) / (double)gradientHistory.size();
   printf("Current avg: %f\n",gAvg);
+  
   //-- Expand the box and see if the increase in captured edges is large enough
    for (int i=0;i<4;i++)
     {
@@ -251,119 +215,72 @@ void Car::updateBoxSize(Mat image)
 	}
     }
    //-- The box has been greedily expanded, now contract it until there is more than noise on the edges
-   while(sum(edges(Range(upperLeft.y,lowerRight.y),Range(upperLeft.x-1,upperLeft.x+1)))[0]/255 < 6 &&
+   int noiseThreshold = 8;
+   while(sum(edges(Range(upperLeft.y,lowerRight.y),Range(upperLeft.x-1,upperLeft.x+1)))[0]/255 < noiseThreshold &&
 upperLeft.x < lowerRight.x - 50)
      {
        upperLeft.x += 1;
      }
  
- while(sum(edges(Range(upperLeft.y-1,upperLeft.y+1),Range(upperLeft.x,lowerRight.x)))[0]/255 < 6 &&
+ while(sum(edges(Range(upperLeft.y-1,upperLeft.y+1),Range(upperLeft.x,lowerRight.x)))[0]/255 < noiseThreshold &&
 upperLeft.y < lowerRight.y - 30)
      {
        upperLeft.y += 1;
      }
 
- while(sum(edges(Range(upperLeft.y,lowerRight.y),Range(lowerRight.x-1,lowerRight.x+1)))[0]/255 < 6 &&
+ while(sum(edges(Range(upperLeft.y,lowerRight.y),Range(lowerRight.x-1,lowerRight.x+1)))[0]/255 < noiseThreshold &&
 upperLeft.x < lowerRight.x - 50)
      {
        lowerRight.x -= 1;
      }
 
- while(sum(edges(Range(lowerRight.y-1,lowerRight.y+1),Range(upperLeft.x,lowerRight.x)))[0]/255 < 6 &&
+ while(sum(edges(Range(lowerRight.y-1,lowerRight.y+1),Range(upperLeft.x,lowerRight.x)))[0]/255 < noiseThreshold &&
 upperLeft.y < lowerRight.y - 30) 
      {
        lowerRight.y -= 1;
      }
 
-   // printf("Sum along ULX: %f\n",sum(edges(Range(upperLeft.y,lowerRight.y),Range(upperLeft.x,upperLeft.x+1)))[0]/255);
-
-   // printf("Sum along ULY: %f\n",sum(edges(Range(upperLeft.y,upperLeft.y+1),Range(upperLeft.x,lowerRight.x)))[0]/255);
-
-   // printf("Sum along LRX: %f\n",sum(edges(Range(upperLeft.y,lowerRight.y),Range(lowerRight.x,lowerRight.x+1)))[0]/255);
-
-   // printf("Sum along LRY: %f\n",sum(edges(Range(lowerRight.y,lowerRight.y+1),Range(upperLeft.x,lowerRight.x)))[0]/255);
+  
  checkBounds(edges,&upperLeft,&lowerRight);    
  rectangle(edges,upperLeft,lowerRight,150);  
 
-      //BEGIN TEMPLATE BLOCK
-      Mat result;
-      int result_cols =  edges.cols - templateIm.cols + 1;
-      int result_rows = edges.rows - templateIm.rows + 1;
-      printf("#########rcols %d \n",result_cols);
-      printf("#########rrows %d \n",result_rows);
+ Point matchUL, matchLR;    
 
-      result.create( result_cols, result_rows, CV_32FC1 );
+ getTemplateMatch(image,&matchUL,&matchLR);
+ 
+ checkBounds(image, &matchUL, &matchLR);    
+ 
+ rectangle( edges, matchUL, matchLR, 100, 2, 8, 0 );
 
-      /// Do the Matching and Normalize
-      //matchTemplate( edges, templateIm, result, CV_TM_SQDIFF_NORMED );
+ double xLength,yLength,overlapFactor;
+ xLength = (lowerRight.x - upperLeft.x)*overlapFactor;
+ yLength = (lowerRight.y - upperLeft.y)*overlapFactor;
 
-      /// Localizing the best match with minMaxLoc
-      double minVal; double maxVal; Point minLoc; Point maxLoc;
-      Point matchLoc;    
-  
-      //resize the template for the current box size
-     Mat resizedTemplate;
-     resize(templateIm,resizedTemplate,Size( lowerRight.x - upperLeft.x,lowerRight.y - upperLeft.y));
-      
-      matchTemplate(edges, resizedTemplate, result, CV_TM_CCORR_NORMED );
-      normalize( result, result, 0, 1, NORM_MINMAX, -1, Mat() );
-      
-      minMaxLoc( result, &minVal, &maxVal, &minLoc, &maxLoc, Mat() );
-      matchLoc = maxLoc;
-      printf("match amount: %f\n",maxVal);
-  
-      Point matchMate(matchLoc.x + resizedTemplate.cols , matchLoc.y + resizedTemplate.rows);
-      checkBounds(edges, &matchLoc, &matchMate);    
-
-      /** using normal template
-      matchTemplate(edges, templateIm, result, CV_TM_CCORR_NORMED );
-      normalize( result, result, 0, 1, NORM_MINMAX, -1, Mat() );
-   
-
-      minMaxLoc( result, &minVal, &maxVal, &minLoc, &maxLoc, Mat() );
-
-      /// For SQDIFF and SQDIFF_NORMED, the best matches are lower values. For all the other methods, the higher the better
-      
-      //matchLoc = minLoc; 
-      matchLoc = maxLoc; 
-  
-      Point matchMate(matchLoc.x + templateIm.cols , matchLoc.y + templateIm.rows);
-      checkBounds(edges, &matchLoc, &matchMate);
-
-**/
-      /// Show me what you got
-      rectangle( edges, matchLoc, matchMate, 100, 2, 8, 0 );
-  
-
-  if(matchLoc.x < upperLeft.x + 10 &&
-     matchLoc.x > upperLeft.x -10 &&
-     matchLoc.y < upperLeft.y + 10 &&
-     matchLoc.y > upperLeft.y -10 ||
-     matchMate.x < lowerRight.x + 10 &&
-     matchMate.x > lowerRight.x -10 &&
-     matchMate.y < lowerRight.y + 10 &&
-     matchMate.y > lowerRight.y -10 )
-    {
-      //-- The template matches the current box and its been 5 frames since we updated the template
-      if(carConfidence==6)
-	{
-	  templateIm = edges(Range(upperLeft.y,lowerRight.y),Range(upperLeft.x,lowerRight.x));     carConfidence = 0;
-	  printf("------- Updated template ---------\n");
-	}
-      else carConfidence++;
-      inertialTracking = false;
-    }
-  else
-    {
-      //-- The template isn't matching the box
-      inertialTracking = true;
-    }
-
-  //END TEMPLATE BLOCK
+ if((matchUL.x < upperLeft.x + xLength &&
+     matchUL.x > upperLeft.x - xLength &&
+     matchUL.y < upperLeft.y + yLength &&
+     matchUL.y > upperLeft.y - yLength) )
+   {
+     //-- The template matches the current box and its been 5 frames since we updated the template
+     if(updateTemplate==20)
+       {
+	 templateIm = image(Range(upperLeft.y,lowerRight.y),Range(upperLeft.x,lowerRight.x));     updateTemplate = 0;
+	 printf("------- Updated template ---------\n");
+       }
+     else updateTemplate++;
+     //-- We are tracking the car
+     inertialTracking = false;
+     printf("update Template: %d \n", updateTemplate);
+   }
+ else
+   {
+     //-- The template isn't matching the box
+     inertialTracking = true;
+   }
 
 
   imshow("gradients",edges);
-  waitKey(1);
+  waitKey(10);
   }
 
 void Car::checkBounds(Mat image, Point* uL, Point* lR)
@@ -371,12 +288,12 @@ void Car::checkBounds(Mat image, Point* uL, Point* lR)
   //Fix the box points if they are outside of bounds
 
   if (uL->x < 1) uL->x = 1;
-  if (uL->x > image.size().height) uL->x = image.size().height - 4;
-  if (lR->x > image.size().height) lR->x = image.size().height - 1;
+  if (uL->x > image.size().width) uL->x = image.size().width - 4;
+  if (lR->x > image.size().width) lR->x = image.size().width - 1;
   if (lR->x < uL->x) lR->x = uL->x + 2;
     
   if (uL->y < 1) uL->y = 1;
-  if (uL->y > image.size().width) uL->y = image.size().width - 4;
-  if (lR->y > image.size().width) lR->y = image.size().width - 1;
+  if (uL->y > image.size().height) uL->y = image.size().height - 4;
+  if (lR->y > image.size().height) lR->y = image.size().height - 1;
   if (lR->y < uL->y) lR->y = uL->y + 2;
 }
