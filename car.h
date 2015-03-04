@@ -23,6 +23,10 @@ class Car
   Car(Point uL, Point lR, Mat initialIm);
   ~Car();
   
+  void updateBoxPos(Mat image1, Mat image2);
+  void updateBoxSize(Mat image);
+
+ private:
   Point upperLeft;
   Point lowerRight;
   bool inertialTracking; 
@@ -33,15 +37,11 @@ class Car
   std::vector<int> gradientHistory;
   std::vector<int> xHistory;
   std::vector<int> yHistory;
-  
-  void updateBoxPos(Mat image_1, Mat image_2);
-  void updateBoxSize(Mat image);
+
   void checkBounds(Mat image, Point* uL, Point* lR);
-  void getTemplateMatch(Mat image, Point* matchUL, Point* matchLR);
-  void matchPoints(std::vector<KeyPoint>* kp_in1, std::vector<KeyPoint>* kp_in2,Mat image_1, Mat image_2, std::vector<KeyPoint>* kp_out1, std::vector<KeyPoint>* kp_out2, int thresh);
-
-private:
-
+  void getTemplateMatch(Mat image, Point* matchUL, Point* matchLR, Mat* templateImage);
+  void matchPoints(std::vector<KeyPoint>* keypointsIn1, std::vector<KeyPoint>* keypointsIn2,Mat image1, Mat image2, std::vector<KeyPoint>* keypointsOut1, std::vector<KeyPoint>* keypointsOut2, int thresh);
+  
 
 };
 
