@@ -1,19 +1,42 @@
-#include "cartracker.h"
+#include "car.h"
 using namespace cv;
 
-void readme();
-
-void updateBoxPos(Mat &image_1, Mat &image_2, Point &upperLeft, Point &lowerRight, std::vector<Mat> &confirmedFeatures);
-
-void updateBoxSize(Mat &image_1, Point &upperLeft, Point &lowerRight);
-
-void checkBounds(Point &upperLeft, Point &lowerRight);
-
-/** @function main */
 int main( int argc, char** argv )
 {
-  if( argc != 3 )
-  { readme(); return -1; }
+  //-- Initialize the first car location
+  int minX = 5;
+  int maxX = 53;
+
+  int minY = 168;
+  int maxY = 190;
+
+  Point upperLeft(minX,minY);
+  Point lowerRight(maxX,maxY);
+   
+  //-- Initialize a car object 
+  Car firstCar(upperLeft,lowerRight);
+
+  //-- Iterate through images
+  for (int j = 1; j < 252; j++)
+    {
+      char im1_name[30];
+      char im2_name[30];
+      sprintf(im1_name,"../car/00000%03d.jpg",j);
+      sprintf(im2_name,"../car/00000%03d.jpg",j+1);
+      Mat img_1 = imread( im1_name, CV_LOAD_IMAGE_GRAYSCALE );
+      Mat img_2 = imread( im2_name, CV_LOAD_IMAGE_GRAYSCALE );
+      printf("%s\n",im1_name);
+      fflush(stdout);
+      
+      firstCar.updateBoxSize(img_1);
+
+      firstCar.updateBoxPos(img_1, img_2);
+ 
+      usleep(1000000);
+
+    }
+  return 0;
+
 
   Mat img_1 = imread( argv[1], CV_LOAD_IMAGE_GRAYSCALE );
   Mat img_2 = imread( argv[2], CV_LOAD_IMAGE_GRAYSCALE );
@@ -34,15 +57,7 @@ int main( int argc, char** argv )
   //-- Draw keypoints
   Mat img_keypoints_1; Mat img_keypoints_2;
  
-  int minX = 5;
-  int maxX = 53;
-
-  int minY = 168;
-  int maxY = 190;
-
-  Point upperLeft(minX,minY);
-  Point lowerRight(maxX,maxY);
-   
+ 
   //std::cout<<keypoints_1.size() << std::endl;
 
   std::vector<KeyPoint> keypoints_car1, keypoints_gm1, keypoints_gm2;
@@ -122,6 +137,3 @@ int main( int argc, char** argv )
   return 0;
   }
 
-  /** @function readme */
-  void readme()
-  { std::cout << " Usage: ./SURF_detector <img1> <img2>" << std::endl; }
