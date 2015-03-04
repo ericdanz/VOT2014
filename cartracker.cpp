@@ -13,8 +13,10 @@ int main( int argc, char** argv )
   Point upperLeft(minX,minY);
   Point lowerRight(maxX,maxY);
    
+  Mat initial_img = imread("../car/00000001.jpg", CV_LOAD_IMAGE_GRAYSCALE );
+     
   //-- Initialize a car object 
-  Car firstCar(upperLeft,lowerRight);
+  Car firstCar(upperLeft,lowerRight,initial_img);
 
   //-- Iterate through images
   for (int j = 1; j < 252; j++)
@@ -31,6 +33,36 @@ int main( int argc, char** argv )
       firstCar.updateBoxSize(img_1);
 
       firstCar.updateBoxPos(img_1, img_2);
+
+      //BEGIN // TEMPLATE BLOCK
+      // Mat result;
+      // int result_cols =  img_1.cols - firstCar.templateIm.cols + 1;
+      // int result_rows = img_1.rows - firstCar.templateIm.rows + 1;
+
+      // result.create( result_cols, result_rows, CV_32FC1 );
+
+      // /// Do the Matching and Normalize
+      // //matchTemplate( img_1, firstCar.templateIm, result, CV_TM_SQDIFF_NORMED );
+      // matchTemplate( img_1, firstCar.templateIm, result, CV_TM_CCORR_NORMED );
+      // normalize( result, result, 0, 1, NORM_MINMAX, -1, Mat() );
+
+      // /// Localizing the best match with minMaxLoc
+      // double minVal; double maxVal; Point minLoc; Point maxLoc;
+      // Point matchLoc;
+
+      // minMaxLoc( result, &minVal, &maxVal, &minLoc, &maxLoc, Mat() );
+
+      // /// For SQDIFF and SQDIFF_NORMED, the best matches are lower values. For all the other methods, the higher the better
+
+      // //matchLoc = minLoc; 
+      // matchLoc = maxLoc; 
+  
+      // /// Show me what you got
+      // rectangle( img_1, matchLoc, Point( matchLoc.x + firstCar.templateIm.cols , matchLoc.y + firstCar.templateIm.rows ), Scalar::all(0), 2, 8, 0 );
+      // imshow("templatebox",img_1);
+      // waitKey(1);
+      // //END TEMPLATE BLOCK
+
  
       usleep(1000000);
 

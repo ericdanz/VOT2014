@@ -13,7 +13,7 @@ cartracker.o: cartracker.cpp car.h
 	$(CC) $(CFLAGS) -c $^ 
 
 car.o: car.h
-#	$(CC) $(CFLAGS) -o $@ -c $^
+
 
 cartracker: cartracker.o car.o
 	$(LINK) $^ -o $@  $(LFLAGS)
