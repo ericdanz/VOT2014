@@ -140,7 +140,7 @@ void Car::updateBoxPos(Mat image1, Mat image2)
       lowerRight.x += avgXHistorical;
       upperLeft.y += avgYHistorical;
       lowerRight.y += avgYHistorical;
-      printf("++++++++++++++++ Inertial Tracking - lost car +++++++++++++++++++\n");
+      printf("+++++++++++++++++++ Inertial Tracking - lost car ++++++++++++++++++++++\n");
       //-- Make sure the edges of the box are still on the screen
       checkBounds(image1, &upperLeft, &lowerRight);
     }
@@ -279,7 +279,7 @@ void Car::updateBoxSize(Mat image)
       if(updateTemplate==15)
 	{
 	  templateIm = image(Range(upperLeft.y,lowerRight.y),Range(upperLeft.x,lowerRight.x));     updateTemplate = 0;
-	  printf("------------ Updated template --------------\n");
+	  printf("-------------------      Updated template      --------------------\n");
 	}
       else updateTemplate++;
       //-- We are tracking the car
