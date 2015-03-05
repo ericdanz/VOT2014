@@ -1,11 +1,12 @@
+//Written by Eric Danziger
+
 #include "car.h"
-//#include <gtest/gtest.h>
 using namespace cv;
 
 
 int main( int argc, char** argv )
 {
-Point upperLeft(5,168);
+  Point upperLeft(5,168);
 Point lowerRight(53,190);
 Mat initialImg = imread("../car/00000001.jpg", CV_LOAD_IMAGE_GRAYSCALE );
 

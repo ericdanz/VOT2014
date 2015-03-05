@@ -1,3 +1,5 @@
+//Written by Eric Danziger
+
 #include "car.h"
 using namespace cv;
 
