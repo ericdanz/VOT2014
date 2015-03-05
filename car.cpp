@@ -18,6 +18,16 @@ Car::~Car()
 
 void Car::matchPoints(std::vector<KeyPoint>* keypointsIn1, std::vector<KeyPoint>* keypointsIn2,Mat image1, Mat image2, std::vector<KeyPoint>* keypointsOut1, std::vector<KeyPoint>* keypointsOut2, int thresh)
 {
+  if(!keypointsIn1->size() || !keypointsIn2->size())
+    {
+      //-- Detect the keypoints using SURF Detector
+      int minHessian = 400;
+
+      SurfFeatureDetector detector( minHessian );
+  
+      detector.detect( image1, *keypointsIn1 );
+      detector.detect( image2, *keypointsIn2 );
+    }
 
   //-- Extract features for matching
   SurfDescriptorExtractor extractor;
@@ -102,8 +112,6 @@ void Car::updateBoxPos(Mat image1, Mat image2)
   double avgX = std::accumulate(xDistance.begin(), xDistance.end(), 0) / (double)xDistance.size();
   double avgY = std::accumulate(yDistance.begin(), yDistance.end(), 0) / (double)yDistance.size();
 
-  printf( "\nDistance x: %.1f \nDistance y: %.1f  \n\n", avgX, avgY );
-  
   drawKeypoints( image1, keypointsGM1, imgKeypoints1, Scalar::all(-1), DrawMatchesFlags::DEFAULT );
   
   //-- Update the box if we are still tracking the car
@@ -149,6 +157,13 @@ void Car::getTemplateMatch(Mat image, Point* matchUL, Point* matchLR, Mat* templ
   //-- This function will take a template image, resize it to the box size, and find it in the image
   //-- This is used as a check on the SURF features update of the box and the edge resize of the box
  
+  //-- If the template image doesn't exist, make one
+  if(!templateImage->rows)
+    {
+      checkBounds(image,&upperLeft,&lowerRight);
+      *templateImage = image(Range(upperLeft.y,lowerRight.y),Range(upperLeft.x,lowerRight.x));
+    }
+
   Mat result;
   int resultCols =  image.cols - templateImage->cols + 1;
   int resultRows = image.rows - templateImage->rows + 1;
@@ -269,7 +284,6 @@ void Car::updateBoxSize(Mat image)
       else updateTemplate++;
       //-- We are tracking the car
       inertialTracking = false;
-      printf("Update Template: %d \n", updateTemplate);
     }
   else
     {
@@ -293,13 +307,13 @@ void Car::checkBounds(Mat image, Point* uL, Point* lR)
   //The smallest box is 50,30
   if (uL->x < 1) uL->x = 1;
   if (uL->x > image.size().width) uL->x = image.size().width - 52;
-  if (lR->x < uL->x) lR->x = uL->x + 50;  
+  if (lR->x < uL->x + 50) lR->x = uL->x + 50;  
   if (lR->x > image.size().width) lR->x = image.size().width - 1;
   
     
   if (uL->y < 1) uL->y = 1;
   if (uL->y > image.size().height) uL->y = image.size().height - 32;
-  if (lR->y < uL->y) lR->y = uL->y + 30;  
+  if (lR->y < uL->y + 30) lR->y = uL->y + 30;  
   if (lR->y > image.size().height) lR->y = image.size().height - 1;
   
 }
@@ -378,17 +392,82 @@ bool Car::unitTest(Mat image)
     }
   printf("  checkBounds Reversed Points\n");
 
+  if(templateIm.rows) printf("[ PASS ]");
+  else 
+    {
+      printf("[ FAIL ]"); 
+      allTests = false; 
+    }
+  printf("  Constructor Template Doesn't Exist\n");
 
-
-  if(templateIm.rows) printf("[ PASS ]  Constructor Template Exists\n");
-  else printf("[ FAIL ]  Constructor Template Doesn't Exist\n");
+  //-- Test getTemplateMatch
+  Mat emptyTemplate;
+  getTemplateMatch(image,&matchUL,&matchLR,&emptyTemplate);
+  if(matchUL== upperLeft) printf("[ PASS ]");
+  else 
+    {
+      printf("[ FAIL ]");
+      allTests = false;
+    }
+  printf("  Empty Template Doesn't Match\n");
 
   getTemplateMatch(image, &matchUL, &matchLR, &templateIm);
-  if(matchUL== upperLeft) printf("[ PASS ]  Constructor Template Matches\n");
-  else printf("[ FAIL ]  Constructor Template Doesn't Match\n");
+  if(matchUL== upperLeft) printf("[ PASS ]");
+  else
+    { 
+      printf("[ FAIL ]");
+      allTests = false;
+    }
+  printf("  Constructor Template Doesn't Match\n");
 
+  //-- Test matchPoints
+  std::vector<KeyPoint> i1,i2,o1,o2;
+  matchPoints(&i1,&i2,image,image,&o1,&o2,5);
+  if(o1.size()) printf("[ PASS ]");
+  else
+    {
+      printf("[ FAIL ]");
+      allTests = false;
+    }
+  printf("  matchPoints Empty Keypoints\n");
 
+  if (o1[0].pt.x == o2[0].pt.x && o1[0].pt.y == o2[0].pt.y) printf("[ PASS ]");
+  else
+    {
+      printf("[ FAIL ]");
+      allTests = false;
+    }
+  printf("  matchPoints Detector Identical Image\n");
+  //-- Test updateBoxPos
+  matchUL = upperLeft;
+  matchLR = lowerRight;
+  updateBoxPos(image,image);
+  if(matchUL.x == upperLeft.x) printf("[ PASS ]");
+  else
+    {
+      printf("[ FAIL ]");
+      allTests = false;
+    }
+  printf("  updateBoxPos Identical Image 0 Movement\n");
 
+  //-- Test updateBoxSize - check that the box is about the same size
+  matchUL = upperLeft;
+  matchLR = lowerRight;
+  updateBoxSize(image);
+  if(matchUL.x < upperLeft.x + 5 &&
+     matchUL.x > upperLeft.x - 5 &&
+     matchUL.y < upperLeft.y + 5 &&
+     matchUL.y > upperLeft.y - 5 &&
+     matchLR.x < lowerRight.x + 5 &&
+     matchLR.x > lowerRight.x - 5 &&
+     matchLR.x < lowerRight.x + 5 &&
+     matchLR.x > lowerRight.x - 5) printf("[ PASS ]");
+  else
+    {
+      printf("[ FAIL ]");
+      allTests = false;
+    }
+  printf("  updateBoxSize Identical Image\n");
 
   return allTests;
 }
