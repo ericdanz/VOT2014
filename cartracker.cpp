@@ -1,4 +1,10 @@
+//This file uses the Car class to track a vehicle in a set of images
+//Change this file to track a different car in a different image
+//Although the robustness of the Car class is not guaranteed!
+//
 //Written by Eric Danziger
+//04 March 2015
+//ericdanziger@cmu.edu
 
 #include "car.h"
 using namespace cv;

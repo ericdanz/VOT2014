@@ -1,4 +1,6 @@
 //Written by Eric Danziger
+//04 March 2015
+//ericdanziger@cmu.edu
 
 #ifndef CAR_H
 #define CAR_H

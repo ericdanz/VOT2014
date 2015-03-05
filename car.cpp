@@ -1,4 +1,10 @@
+//This is the Car class
+//The main focus is on two public functions to update the position and size of the tracking box
+//The updateBoxSize function can be modified to be more robust for other image sets
+//
 //Written by Eric Danziger
+//04 March 2015
+//ericdanziger@cmu.edu
 
 #include "car.h"
 using namespace cv;

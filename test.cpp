@@ -1,4 +1,9 @@
+//This is the test file
+//This calls unitTest, which contains a basic set of unit tests
+//
 //Written by Eric Danziger
+//04 March 2015
+//ericdanziger@cmu.edu
 
 #include "car.h"
 using namespace cv;
