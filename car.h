@@ -15,6 +15,8 @@
 #include "opencv2/features2d/features2d.hpp"
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/nonfree/nonfree.hpp"
+#include "gtest/gtest.h"
+
 using namespace cv;
 
 class Car
@@ -25,6 +27,7 @@ class Car
   
   void updateBoxPos(Mat image1, Mat image2);
   void updateBoxSize(Mat image);
+  bool unitTest(Mat image);
 
  private:
   Point upperLeft;

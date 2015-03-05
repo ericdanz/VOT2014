@@ -1,0 +1,1 @@
+This function takes in a series of images and an intial bounding box for an object to be tracked. That object will then be tracked in successive frames. 

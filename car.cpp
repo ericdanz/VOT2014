@@ -3,9 +3,11 @@ using namespace cv;
 
 Car::Car(Point uL, Point lR, Mat initialIm)
 {
+
   upperLeft = uL;
   lowerRight = lR;
   inertialTracking = false;
+  checkBounds(initialIm, &upperLeft, &lowerRight);
   templateIm = initialIm(Range(upperLeft.y,lowerRight.y),Range(upperLeft.x,lowerRight.x));
   updateTemplate = 1;  
 }
@@ -281,15 +283,112 @@ void Car::updateBoxSize(Mat image)
 
 void Car::checkBounds(Mat image, Point* uL, Point* lR)
 {
-  //Fix the box points if they are outside of bounds
+  //If any point doesn't exist, set it to 0
+  if(!uL->x) uL->x = 0;
+  if(!uL->y) uL->y = 0;
+  if(!lR->x) lR->x = 0;
+  if(!lR->y) lR->y = 0;
 
+  //Fix the box points if they are outside of bounds
+  //The smallest box is 50,30
   if (uL->x < 1) uL->x = 1;
-  if (uL->x > image.size().width) uL->x = image.size().width - 4;
+  if (uL->x > image.size().width) uL->x = image.size().width - 52;
+  if (lR->x < uL->x) lR->x = uL->x + 50;  
   if (lR->x > image.size().width) lR->x = image.size().width - 1;
-  if (lR->x < uL->x) lR->x = uL->x + 2;
+  
     
   if (uL->y < 1) uL->y = 1;
-  if (uL->y > image.size().height) uL->y = image.size().height - 4;
+  if (uL->y > image.size().height) uL->y = image.size().height - 32;
+  if (lR->y < uL->y) lR->y = uL->y + 30;  
   if (lR->y > image.size().height) lR->y = image.size().height - 1;
-  if (lR->y < uL->y) lR->y = uL->y + 2;
+  
+}
+
+
+bool Car::unitTest(Mat image)
+{
+  bool allTests = true;
+  //-- This function is a simple example of unit testing
+  //-- There are frameworks that do this better
+
+  Point matchUL,matchLR;
+  
+  //-- First test checkBounds
+  //-- This function is a check used throughout the class
+  checkBounds(image, &matchUL, &matchLR);
+  if(matchUL.x > 0 && matchUL.x < image.size().width &&
+     matchUL.y > 0 && matchUL.y < image.size().height &&
+     matchLR.x > 0 && matchLR.x < image.size().width &&
+     matchLR.y > 0 && matchLR.y < image.size().height) printf("[ PASS ]");
+  else 
+    {
+      printf("[ FAIL ]");
+      allTests = false;
+    }
+  printf("  checkBounds Empty Points\n");
+
+  matchUL.x = 0;
+  matchUL.y = 0;
+  matchLR.x = 0;
+  matchLR.y = 0;
+
+  checkBounds(image, &matchUL, &matchLR);
+  if(matchUL.x > 0 && matchUL.x < image.size().width &&
+     matchUL.y > 0 && matchUL.y < image.size().height &&
+     matchLR.x > 0 && matchLR.x < image.size().width &&
+     matchLR.y > 0 && matchLR.y < image.size().height) printf("[ PASS ]");
+  else 
+    {
+      printf("[ FAIL ]"); 
+      allTests = false;
+    }
+  printf("  checkBounds Zero Points\n");
+
+  matchUL.x = image.size().width*2;
+  matchUL.y = image.size().height*2;
+  matchLR.x = image.size().width*2;
+  matchLR.y = image.size().height*2;
+
+  checkBounds(image, &matchUL, &matchLR);
+  if(matchUL.x > 0 && matchUL.x < image.size().width &&
+     matchUL.y > 0 && matchUL.y < image.size().height &&
+     matchLR.x > 0 && matchLR.x < image.size().width &&
+     matchLR.y > 0 && matchLR.y < image.size().height) printf("[ PASS ]");
+  else 
+    {
+      printf("[ FAIL ]");
+      allTests = false;
+    }
+  printf("  checkBounds Out of Bounds Points\n");
+
+  matchUL.x = image.size().width - 10;
+  matchUL.y = image.size().height - 10;
+  matchLR.x = 2;
+  matchLR.y = 2;
+
+  checkBounds(image, &matchUL, &matchLR);
+  if(matchUL.x > 0 && matchUL.x < image.size().width &&
+     matchUL.y > 0 && matchUL.y < image.size().height &&
+     matchLR.x > 0 && matchLR.x < image.size().width &&
+     matchLR.y > 0 && matchLR.y < image.size().height) printf("[ PASS ]");
+  else 
+    {
+      printf("[ FAIL ]");
+      allTests = false;
+    }
+  printf("  checkBounds Reversed Points\n");
+
+
+
+  if(templateIm.rows) printf("[ PASS ]  Constructor Template Exists\n");
+  else printf("[ FAIL ]  Constructor Template Doesn't Exist\n");
+
+  getTemplateMatch(image, &matchUL, &matchLR, &templateIm);
+  if(matchUL== upperLeft) printf("[ PASS ]  Constructor Template Matches\n");
+  else printf("[ FAIL ]  Constructor Template Doesn't Match\n");
+
+
+
+
+  return allTests;
 }
